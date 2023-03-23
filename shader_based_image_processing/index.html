@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+
+        margin: 0;
+        overflow: hidden;
+        background-color: #aaaaaa;
+        background-attachment: fixed !important;
+      }
+    </style>
+    <style>
+      body {
+        font-family: Monospace;
+        margin: 0px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+
+<script id="vertShader" type="shader">
+
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+
+    precision highp float;
+
+    in vec3 position;
+    in vec2 in_texture_coords;
+    
+    out vec2 vUv;
+    out vec3 vPosition;
+
+    void main() {
+        vUv = in_texture_coords;
+        vPosition = position;
+
+        gl_Position = projectionMatrix *
+                        modelViewMatrix * vec4(position, 1.0 );
+        }
+    </script>
+
+    <script id="fragShader" type="shader">
+        precision highp float;
+
+        uniform sampler2D image;
+        uniform int processMethod;
+        uniform int sizeDiv2;
+        uniform float sigma;
+        uniform float colorScaleR;
+        uniform float colorScaleG;
+        uniform float colorScaleB;
+        uniform bool laplacianNorm;
+
+        out vec4 out_FragColor;
+        float gaus;
+
+        void bubbleSort(float arr[121], int n){
+          int ii, jj;
+          int flag=0;
+          float temp;
+          for(int ii = 0; ii <= n; ii++)
+          {
+              for(int jj = 0; jj <= n-ii-1; jj++)
+              {
+                if (arr[jj] > arr[jj+1])
+                {
+                  temp = arr[jj];
+                  arr[jj] = arr[jj+1];
+                  arr[jj+1] = temp;
+                }
+              }
+          }
+        }
+
+        void main(void) {
+              if (processMethod == 0) // none
+              {
+                vec4 textureValue = vec4 ( 0,0,0,0 );
+                textureValue += texelFetch( image, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+                out_FragColor = vec4(vec3(colorScaleR,colorScaleG,colorScaleB),1.0)*textureValue;
+              }
+              else if (processMethod == 1) // gaus
+              {
+                vec4 textureValue = vec4 ( 0,0,0,0 );
+                for (int i=-sizeDiv2;i<=sizeDiv2;i++)
+                  for (int j=-sizeDiv2;j<=sizeDiv2;j++)
+                  {
+                      gaus = (1.0/(2.0*3.14*sigma*sigma))*exp(-1.0*(float(i)*float(i)+float(j)*float(j))/(2.0*sigma*sigma));
+                      textureValue += gaus*texelFetch( image, ivec2(i+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+                  }
+                out_FragColor = vec4(vec3(colorScaleR,colorScaleG,colorScaleB),1.0)*textureValue;
+              }
+              else if ( processMethod == 2) // laplacian
+              {
+                vec4 textureValue = vec4 ( 0,0,0,0 );
+                mat4 LaplacianFilter = mat4( 0.0, 0.0, 0.0, 0.0,
+                                    0.0, 0.0, -1.0, 0.0,
+                                    0.0, -1.0, 4.0, -1.0,
+                                    0.0, 0.0, -1.0, 0.0);
+                for (int i=-1;i<=1;i++)
+                  for (int j=-1;j<=1;j++)
+                  {
+                      float factor = LaplacianFilter[j+2][i+2];
+                      textureValue += factor*texelFetch( image, ivec2(i+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+                  }
+                out_FragColor = vec4(vec3(colorScaleR,colorScaleG,colorScaleB),1.0)*textureValue;
+                if (laplacianNorm)
+                {
+                  out_FragColor.x = length(out_FragColor);
+                  out_FragColor.y = length(out_FragColor);
+                  out_FragColor.z = length(out_FragColor);
+                  out_FragColor.a = 1.0;
+                }
+              }
+              else if (processMethod == 3){
+                // Separable horizontal filter
+                vec4 textureValue = vec4 ( 0,0,0,0 );
+                for (int i=-sizeDiv2;i<=sizeDiv2;i++)
+                  {
+                      gaus = (1.0/sqrt(2.0*3.14*sigma*sigma))*exp(-1.0*(float(i)*float(i))/(2.0*sigma*sigma));
+                      textureValue += gaus*texelFetch( image, ivec2(i+int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+                  }
+                out_FragColor = vec4(vec3(colorScaleR,colorScaleG,colorScaleB),1.0)*textureValue;
+              }
+              else if (processMethod == 4) // median
+              {
+                vec4 textureValue = vec4 ( 0,0,0,0 );
+                int filterLen = sizeDiv2*sizeDiv2;
+                int sizeDiv = sizeDiv2/2;
+                float textArrX[121];
+                float textArrY[121];
+                float textArrZ[121];
+                int counter = 0;
+                for (int i=-sizeDiv;i<=sizeDiv;i++)
+                  for (int j=-sizeDiv;j<=sizeDiv;j++)
+                  {
+                    vec4 tmp = texelFetch( image, ivec2(i+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+                    textureValue = tmp;
+                    textArrX[counter] = tmp.x;
+                    textArrY[counter] = tmp.y;
+                    textArrZ[counter] = tmp.z;
+                    counter += 1;
+                  }
+                bubbleSort(textArrX, filterLen);
+                int mid = filterLen/2;
+                textureValue.x = textArrX[mid];
+                bubbleSort(textArrY, filterLen);
+                textureValue.y = textArrY[mid];
+                bubbleSort(textArrZ, filterLen);
+                textureValue.z = textArrZ[mid];
+                out_FragColor = vec4(vec3(colorScaleR,colorScaleG,colorScaleB),1.0)*textureValue;
+              }
+        }
+    </script>
+
+
+    <script id="vertShaderAnaglyph" type="shader">
+
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+
+    precision highp float;
+
+    in vec3 position;
+    in vec2 in_texture_coords;
+
+    out vec2 vUv;
+    out vec3 vPosition;
+
+    void main() {
+        vUv = in_texture_coords;
+        vPosition = position;
+
+        gl_Position = projectionMatrix *
+                      modelViewMatrix * vec4(position, 1.0 );
+      }
+    </script>
+
+    <script id="fragShaderAnaglyph" type="shader">
+    precision highp float;
+
+    uniform sampler2D image;
+    uniform int processMethodAnaglyph;
+    uniform int sizeDiv2;
+    uniform float colorScaleR;
+    uniform float colorScaleG;
+    uniform float colorScaleB;
+    uniform int imageWidth;
+    uniform int separableFlag;
+    uniform float sigma;
+    uniform int gausAndLaplacFlag;
+
+    float gaus;
+
+    in vec2 vUv;
+    in vec3 vPosition;
+
+    out vec4 out_FragColor;
+
+    void main(void) {
+      	vec4 textureValue = vec4 ( 0,0,0,0 );
+        vec4 textureValueLeft = vec4 ( 0,0,0,0 );
+        vec4 textureValueRight = vec4 ( 0,0,0,0 );
+        
+
+        if (separableFlag == 1)
+        {
+          // Separable vertical filter
+          for (int j=-sizeDiv2;j<=sizeDiv2;j++)
+            {
+                gaus = (1.0/sqrt(2.0*3.14*sigma*sigma))*exp(-1.0*(float(j)*float(j))/(2.0*sigma*sigma));
+                textureValueLeft += gaus*texelFetch( image, ivec2(int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+                textureValueRight += gaus*texelFetch( image, ivec2(imageWidth/2+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+            }
+        }
+        else if (gausAndLaplacFlag == 1)
+        {
+          for (int i=-sizeDiv2;i<=sizeDiv2;i++)
+            for (int j=-sizeDiv2;j<=sizeDiv2;j++)
+            {
+                gaus = (1.0/(2.0*3.14*sigma*sigma))*exp(-1.0*(float(i)*float(i)+float(j)*float(j))/(2.0*sigma*sigma));
+                textureValueLeft += gaus*texelFetch( image, ivec2(i+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+                textureValueRight += gaus*texelFetch( image, ivec2(imageWidth/2+int(gl_FragCoord.x), j+int(gl_FragCoord.y)), 0 );
+            }
+        }
+        else
+        {
+          textureValueLeft += texelFetch( image, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+          textureValueRight += texelFetch( image, ivec2(imageWidth/2+int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+        }
+
+        //textureValueLeft += texelFetch( image, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+        float rL = textureValueLeft[0];
+        float gL = textureValueLeft[1];
+        float bL = textureValueLeft[2];
+        float dL = textureValueLeft[3];
+
+        //textureValueRight += texelFetch( image, ivec2(imageWidth/2+int(gl_FragCoord.x), int(gl_FragCoord.y)), 0 );
+        float rR = textureValueRight[0];
+        float gR = textureValueRight[1];
+        float bR = textureValueRight[2];
+        float dR = textureValueRight[3];
+
+        vec4 tmp_out_FragColor = vec4 ( 0,0,0,0 );
+        vec4 tmp_out_FragColor_L = vec4 ( 0,0,0,0 );
+        vec4 tmp_out_FragColor_R = vec4 ( 0,0,0,0 );
+
+        if (processMethodAnaglyph == 0) {
+          tmp_out_FragColor_L = textureValueRight;
+        }
+        else if (processMethodAnaglyph == 1) {
+          tmp_out_FragColor_L = vec4(vec3(0.299*rL+0.587*gL+0.114*bL,0.0,0.0),1.0*dL);
+          tmp_out_FragColor_R = vec4(vec3(0.0,0.0,0.299*rR+0.587*gR+0.114*bR),1.0*dR);
+        }
+        else if (processMethodAnaglyph == 2) {
+          tmp_out_FragColor_L = vec4(vec3(0.299*rL+0.587*gL+0.114*bL,0.0,0.0),1.0*dL);
+          tmp_out_FragColor_R = vec4(vec3(0.0,0.299*rR+0.587*gR+0.114*bR,0.299*rR+0.587*gR+0.114*bR),1.0*dR);          
+        }
+        else if (processMethodAnaglyph == 3) {
+          tmp_out_FragColor_L = vec4(vec3(1.0*rL,0.0,0.0),1.0*dL);
+          tmp_out_FragColor_R = vec4(vec3(0.0,1.0*gR,1.0*bR),1.0*dR); 
+        }
+        else if (processMethodAnaglyph == 4) {
+          tmp_out_FragColor_L = vec4(vec3(0.299*rL+0.587*gL+0.114*bL,0.0,0.0),1.0*dL);
+          tmp_out_FragColor_R = vec4(vec3(0.0,1.0*gR,1.0*bR),1.0*dR);  
+        }
+        else if (processMethodAnaglyph == 5) {
+          tmp_out_FragColor_L = vec4(vec3(0.7*gL+0.3*bL,0.0,0.0),1.0*dL);
+          tmp_out_FragColor_R = vec4(vec3(0.0,1.0*gR,1.0*bR),1.0*dR);  
+        }
+        out_FragColor = tmp_out_FragColor_L+tmp_out_FragColor_R;
+	}
+    </script>
+
+    <script
+      async
+      src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"
+    ></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+      import WEBGL from "three/addons/capabilities/WebGL.js";
+
+      function IVimageProcessing(height, width, imageProcessingMaterial) {
+        this.height = height;
+        this.width = width;
+
+        //3 rtt setup
+        this.scene = new THREE.Scene();
+        this.orthoCamera = new THREE.OrthographicCamera(
+          -1,
+          1,
+          1,
+          -1,
+          1 / Math.pow(2, 53),
+          1
+        );
+
+        //4 create a target texture
+        var options = {
+          minFilter: THREE.NearestFilter,
+          magFilter: THREE.NearestFilter,
+          format: THREE.RGBAFormat,
+          type: THREE.FloatType,
+          //            type:THREE.UnsignedByteType,
+          canvas: canvas,
+          context: context,
+        };
+        this.rtt = new THREE.WebGLRenderTarget(width, height, options);
+
+        var geom = new THREE.BufferGeometry();
+        geom.setAttribute(
+          "position",
+          new THREE.BufferAttribute(
+            new Float32Array([
+              -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, 1, 0,
+            ]),
+            3
+          )
+        );
+        this.scene.add(new THREE.Mesh(geom, imageProcessingMaterial));
+      }
+
+      function IVprocess(imageProcessing, renderer) {
+        renderer.setRenderTarget(imageProcessing.rtt);
+        renderer.render(imageProcessing.scene, imageProcessing.orthoCamera);
+        renderer.setRenderTarget(null);
+      }
+
+      var camera, controls, scene, renderer, container;
+      var context, canvas;
+      var plan;
+      var laplacianFlag, filter;
+
+      // VIDEO AND THE ASSOCIATED TEXTURE
+      var video, videoTexture;
+
+      var imageProcessing, imageProcessingMaterial, imageProcessingMaterialAnaglyph, imageProcessingCombined, imageProcessingMaterialCombined
+      var imageProcessingAnaglyph
+      // GUI
+      var gui;
+
+      init();
+      animate();
+
+      function init() {
+        if (WEBGL.isWebGL2Available() === false) {
+          document.body.appendChild(WEBGL.getWebGL2ErrorMessage());
+        }
+        container = document.createElement("div");
+        document.body.appendChild(container);
+
+        canvas = document.createElement("canvas");
+        context = canvas.getContext("webgl2");
+        document.body.appendChild(canvas);
+
+        scene = new THREE.Scene();
+
+        renderer = new THREE.WebGLRenderer({
+          canvas: canvas,
+          context: context,
+        }); //, antialias: true, alpha: true } );
+        renderer.autoClear = false;
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = false;
+
+        container.appendChild(renderer.domElement);
+
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.001,
+          10
+        );
+        camera.position.z = 0.55;
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.minDistance = 0.005;
+        controls.maxDistance = 2.0;
+        controls.enableRotate = true;
+        controls.addEventListener("change", render);
+        controls.update();
+
+				const filenames = [ 'rotating_moon.mp4', 'san_francisco.mp4'];
+        var videoSrc = { none: null };
+				for ( let i = 0; i < filenames.length; i ++ ) {
+          video = document.createElement("video");
+          videoSrc = filenames[ i ];
+          video.src = videoSrc;
+          video.load();
+          video.muted = true;
+          video.loop = true;
+				}
+
+        video.onloadeddata = function () {
+          videoTexture = new THREE.VideoTexture(video);
+          videoTexture.minFilter = THREE.NearestFilter;
+          videoTexture.magFilter = THREE.NearestFilter;
+          videoTexture.generateMipmaps = false;
+          videoTexture.format = THREE.RGBAFormat;
+        //////////////////////////// ANAGLYPH + VERTICAL IP + GAUS PART OF GAUS AND LAPLACIAN ///////////////////////////////////////
+          imageProcessingMaterialAnaglyph = new THREE.RawShaderMaterial({
+            uniforms: {
+              processMethodAnaglyph: { type: "i", value: 0 },
+              sizeDiv2: { type: "i", value: 5 },
+              sigma: {type: "f", value: 0.5},
+              imageWidth: { type: "i", value: video.videoWidth },
+              colorScaleR: { type: "f", value: 1.0 },
+              colorScaleG: { type: "f", value: 1.0 },
+              colorScaleB: { type: "f", value: 1.0 },
+              image: { type: "t", value: videoTexture },
+              separableFlag: { type: "i", value: 0 },
+              gausAndLaplacFlag: { type: "i", value: 0 },
+            },
+            vertexShader: document.getElementById("vertShaderAnaglyph").text,
+            fragmentShader: document.getElementById("fragShaderAnaglyph").text,
+            glslVersion: THREE.GLSL3,
+          });
+
+          imageProcessingAnaglyph = new IVimageProcessing(
+            video.videoHeight,
+            video.videoWidth/2,
+            imageProcessingMaterialAnaglyph
+          );
+
+        //////////////////////////// IMAGE PROCESSING /////////////////////////////////////////////
+          imageProcessingMaterial = new THREE.RawShaderMaterial({
+            uniforms: {
+              processMethod: { type: "i", value: 0 },
+              sizeDiv2: { type: "i", value: 5 },
+              sigma: {type: "f", value: 0.5},
+              imageWidth: { type: "i", value: video.videoWidth },
+              colorScaleR: { type: "f", value: 1.0 },
+              colorScaleG: { type: "f", value: 1.0 },
+              colorScaleB: { type: "f", value: 1.0 },
+              laplacianNorm: { type: "b", value: false },
+              image: { type: "t", value: imageProcessingAnaglyph.rtt.texture }, // do everything from the fragmentShader on the anaglyph result 
+            },
+            vertexShader: document.getElementById("vertShader").text,
+            fragmentShader: document.getElementById("fragShader").text,
+            glslVersion: THREE.GLSL3,
+          });
+
+          imageProcessing = new IVimageProcessing(
+            video.videoHeight,
+            video.videoWidth/2,
+            imageProcessingMaterial
+          );
+
+          console.log(imageProcessing.width);
+  
+          // show the plan with the final result:
+          var geometry = new THREE.PlaneGeometry(
+            1/2,
+            video.videoHeight / video.videoWidth
+          );
+          var material = new THREE.MeshBasicMaterial({
+            map: imageProcessing.rtt.texture,
+            side: THREE.DoubleSide,
+          });
+          plan = new THREE.Mesh(geometry, material);
+		      plan.position.z = 0;
+          plan.position.x = 0;
+          plan.receiveShadow = false;
+          plan.castShadow = false;
+          scene.add(plan);
+
+          var pausePlayObj = {
+            pausePlay: function () {
+              if (!video.paused) {
+                console.log("pause");
+                video.pause();
+              } else {
+                console.log("play");
+                video.play();
+              }
+            },
+            add10sec: function () {
+              video.currentTime = video.currentTime + 10;
+              console.log(video.currentTime);
+            },
+          };
+        
+        // add the gui:
+        gui = new GUI();
+        //////////////////////////////////////////////////////////////////////
+        var GaussianFolder = gui.addFolder('Gaussian Filter');
+        GaussianFolder
+            .add(imageProcessingMaterial.uniforms.sizeDiv2, "value", 1, 11, 1)
+            .name("Kernel Size");
+        GaussianFolder
+            .add(imageProcessingMaterial.uniforms.sigma, "value", 0.5, 5, 0.1)
+            .name("Sigma");
+        ///////////////////////////////////////////////////////////////////////
+        var LaplacianFolder = gui.addFolder('Laplacian Filter');
+        LaplacianFolder.add(imageProcessingMaterial.uniforms.laplacianNorm, "value")
+            .name("Norm");
+        //////////////////////////////////////////////////////////////////////
+        var SeparableGaussianFolder = gui.addFolder('Separable Gaussian Filter');
+        SeparableGaussianFolder
+          .add(imageProcessingMaterial.uniforms.sizeDiv2, "value", 1, 11, 1)
+          .name("Vertical Kernel Size");
+        SeparableGaussianFolder
+          .add(imageProcessingMaterial.uniforms.sigma, "value", 0.5, 5, 0.1)
+          .name("Vertical Sigma");
+        SeparableGaussianFolder
+          .add(imageProcessingMaterialAnaglyph.uniforms.sizeDiv2, "value", 1, 11, 1)
+          .name("Horizontal Kernel Size");
+        SeparableGaussianFolder
+          .add(imageProcessingMaterialAnaglyph.uniforms.sigma, "value", 0.5, 5, 0.1)
+          .name("Horizontal Sigma");    
+        /////////////////////////////////////////////////////////////////////
+        var MedianFolder = gui.addFolder('Median Filter');
+        MedianFolder
+            .add(imageProcessingMaterial.uniforms.sizeDiv2, "value", 1, 11, 1)
+            .name("Kernel Size");
+        /////////////////////////////////////////////////////////////////////
+        var GaussianAndLaplacianFolder = gui.addFolder('Gaussian and Laplacian Filter');
+        GaussianAndLaplacianFolder
+            .add(imageProcessingMaterialAnaglyph.uniforms.sizeDiv2, "value", 1, 11, 1)
+            .name("Kernel Size");
+        GaussianAndLaplacianFolder
+            .add(imageProcessingMaterialAnaglyph.uniforms.sigma, "value", 0.5, 5, 0.1)
+            .name("Sigma");
+        GaussianAndLaplacianFolder.add(imageProcessingMaterial.uniforms.laplacianNorm, "value")
+            .name("Norm");    
+        ///////////////////////////////////////////////////////////////////////
+        const params3 = {
+					MethodAnaglyph: "None",
+				};
+				gui.add( params3, 'Anaglyph Method', ["None", "True", "Gray", "Color", "Half-Color", "Optimized"] ).onChange( value => 
+        {
+          if ( value == "None")
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 0;
+          else if ( value == "True")
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 1;
+          else if (value == "Gray")
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 2;
+          else if (value == "Color")
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 3;
+          else if (value == "Half-Color")
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 4;
+          else 
+            imageProcessingMaterialAnaglyph.uniforms.processMethodAnaglyph.value = 5;
+				} );
+        /////////////////////////////////////////////////////////////////////
+        const params2 = {
+					processMethod: "None",
+				};
+				gui.add( params2, 'Image Processing Method', ["None", "Gaussian", "Laplacian", "Separable", "Median", "GaussianAndLaplacian"] ).onChange( value => 
+        {
+          if (value == "None")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 0;
+            imageProcessingMaterial.uniforms.processMethod.value = 0;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 0;
+          }
+          else if (value == "Gaussian")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 0;
+            imageProcessingMaterial.uniforms.processMethod.value = 1;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 0;
+          }
+          else if (value == "Laplacian")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 0;
+            imageProcessingMaterial.uniforms.processMethod.value = 2;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 0;
+          }
+          else if (value == "Separable")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 1;
+            imageProcessingMaterial.uniforms.processMethod.value = 3;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 0;
+          }
+          else if (value == "Median")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 0;
+            imageProcessingMaterial.uniforms.processMethod.value = 4;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 0;
+          }
+          else if (value == "GaussianAndLaplacian")
+          {
+            imageProcessingMaterialAnaglyph.uniforms.separableFlag.value = 0;
+            imageProcessingMaterialAnaglyph.uniforms.gausAndLaplacFlag.value = 1;
+            imageProcessingMaterial.uniforms.processMethod.value = 2; // laplacian
+          }
+				} );
+        //////////////////////////////////////////////////////////////////
+        const params = {
+					videoSrc: 'rotating_moon.mp4',
+				};
+				gui.add( params, 'Video File', filenames ).onChange( function ( val ) {
+          video.src = val;
+				} ); 
+        /////////////////////////////////////////////////////////////////////
+        gui.add(pausePlayObj, "pausePlay").name("Pause/play video");
+          video.play();
+        };
+        window.addEventListener("resize", onWindowResize, false);
+      }
+
+      function render() {
+        renderer.clear();
+        if (typeof imageProcessingAnaglyph !== "undefined")
+          IVprocess(imageProcessingAnaglyph, renderer);
+        if (typeof imageProcessing !== "undefined")
+            IVprocess(imageProcessing, renderer);
+        renderer.render(scene, camera);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        render();
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+    </script>
+  </body>
+</html>
