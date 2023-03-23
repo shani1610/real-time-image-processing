@@ -17,16 +17,17 @@ non-conventional image processing methods
 
 | Path | Description
 | :--- | :----------
-| [Primitives](https://shani1610.github.io/real-time-3d-visualization/primitives/) | Practical Work 1
+| [Shaders Based Image Processing](https://shani1610.github.io/real-time-image-processing/shader_based_image_processing/) | Practical Work 1
+| [OpenMP and CUDA Based Image Processing](https://shani1610.github.io/real-time-image-processing/cuda_based_image_processing/) | Practical Work 2
 
-### Practical Work 1: Tasks 1 + 2 Primitives, Cameras and Controls
+### Practical Work 1: Shaders Based Image Processing
 
-in the first task we were asked to create a scene that contains on the same plane (XY) all the primitives available in three.js. next, reproduce these primitives 3 times on the Z axis by modifying at least one parameter of their geometry. next, write a function allowing to create marks (cross based on segments) on the ground of a 3D environment that fade away as it goes far from the primitives. 
-in the second task we were asked in the same web page, display the previous scene twice: one scene with an orthographic camera and second one with a perspective camera. next, use the different control techniques available in three.js to interact with these 2 types of cameras.
+### Practical Work 2: OpenMP and CUDA Based Image Processing
+
 
 ### Acknowledgements
 
-parts of the code borrowed from code given in class and from three.js documantation. 
+parts of the code borrowed from code given in class.
 
 
 
