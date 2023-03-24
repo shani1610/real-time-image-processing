@@ -2,10 +2,12 @@ cd real-time-image-processing/cuda_based_image_processing
 
 CUDA compile:
 /usr/local/cuda/bin/nvcc image.cu `pkg-config opencv4 --cflags --libs` imagecpp-linux.cpp -o imagecuda
+./imagecuda flower_resized.jpg
 
 OpenMP compile:
 g++ opencv-omp-basic.cpp -fopenmp `pkg-config opencv4 --cflags` -c
 g++ opencv-omp-basic.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-basic
+./opencv-omp-basic flower_resized.jpg
 
 git:
 git clone https://github.com/shani1610/real-time-image-processing.git
