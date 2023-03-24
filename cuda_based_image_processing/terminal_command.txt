@@ -1,0 +1,14 @@
+cd real-time-image-processing/cuda_based_image_processing
+/usr/local/cuda/bin/nvcc image.cu `pkg-config opencv4 --cflags --libs` imagecpp-linux.cpp -o imagecuda
+g++ opencv-omp-basic.cpp -fopenmp `pkg-config opencv4 --cflags` -c
+g++ opencv-omp-basic.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-basic
+
+git:
+git clone https://github.com/shani1610/real-time-image-processing.git
+
+to forget local changes: 
+git reset –hard 
+
+my token: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
+
+
