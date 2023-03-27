@@ -16,6 +16,9 @@ int main( int argc, char** argv )
   cv::Mat_<cv::Vec3b> destination_half_color_anaglyph ( source.rows, source.cols/2 );
   cv::Mat_<cv::Vec3b> destination_optimized_anaglyph ( source.rows, source.cols/2 );
 
+  int kernel_size_div2 = stof(argv[2]);
+  double sigma = stof(argv[3]);
+
   cv::imshow("Source Image", source );
 
   auto begin = chrono::high_resolution_clock::now();
@@ -62,8 +65,10 @@ int main( int argc, char** argv )
 
 
 // Gaussian Blur Filter:
-int kernel_size_div2 = 5;
-double sigma = 1.0;
+//int kernel_size_div2 = 11;
+//double sigma = 1.0;
+//cout << "kernel_size_div2: " << kernel_size_div2 << " s" << endl;
+//cout << "sigma: " << sigma<< " s" << endl;
 
 for (int it=0;it<iter;it++)
   {
@@ -106,3 +111,4 @@ for (int it=0;it<iter;it++)
   cv::waitKey();
   return 0;
 }
+
