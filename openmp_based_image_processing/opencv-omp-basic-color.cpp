@@ -2,8 +2,22 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 #include <chrono>  // for high_resolution_clock
+#include <string>
+#include <fstream>
+#include <vector>
 
 using namespace std;
+
+void write_csv(std::string filename, std::string colname, std::vector<double> vals){
+// taken from: https://www.gormanalysis.com/blog/reading-and-writing-csv-files-with-cpp/
+    std::ofstream myFile(filename);
+    myFile << colname << "\n";
+    for(int i = 0; i < vals.size(); ++i)
+    {
+        myFile << vals.at(i) << "\n";
+    }
+    myFile.close();
+}
 
 int main( int argc, char** argv )
 {
@@ -16,6 +30,7 @@ int main( int argc, char** argv )
   cv::Mat_<cv::Vec3b> destination_half_color_anaglyph ( source.rows, source.cols/2 );
   cv::Mat_<cv::Vec3b> destination_optimized_anaglyph ( source.rows, source.cols/2 );
 
+  // command line arguments for gaussian filter 
   int kernel_size_div2 = stof(argv[2]);
   double sigma = stof(argv[3]);
 
@@ -27,7 +42,9 @@ int main( int argc, char** argv )
   int width = source.size().width;
   int height = source.size().height;
 
-  // Anaglyph:
+////////////////////////////////////////////////////////////
+// Anaglyph Methods:
+////////////////////////////////////////////////////////////
   for (int it=0;it<iter;it++)
     {
 	 #pragma omp parallel for
@@ -63,8 +80,10 @@ int main( int argc, char** argv )
         }
     }
 
-
+////////////////////////////////////////////////////////////
 // Gaussian Blur Filter:
+////////////////////////////////////////////////////////////
+
 //int kernel_size_div2 = 11;
 //double sigma = 1.0;
 //cout << "kernel_size_div2: " << kernel_size_div2 << " s" << endl;
@@ -109,6 +128,10 @@ for (int it=0;it<iter;it++)
   cout << "IPS: " << iter/diff.count() << endl;
   
   cv::waitKey();
+
+  std::vector<double> vec = { diff.count(), diff.count()/iter, iter/diff.count()};
+  write_csv("times.csv", "anaglyphs and blur", vec);
+
   return 0;
 }
 
