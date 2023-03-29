@@ -14,13 +14,13 @@ __global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<u
   const int dst_x = blockDim.x * blockIdx.x + threadIdx.x;
   const int dst_y = blockDim.y * blockIdx.y + threadIdx.y;
 
-  if (dst_x < cols/2 && dst_y < rows)
+  if (dst_x < cols && dst_y < rows)
     {
       double sum_b = 0.0;
       double sum_g = 0.0;
       double sum_r = 0.0;
       uchar3 val_r = src(dst_y, dst_x);
-      uchar3 val_l = src(dst_y, dst_x+cols/2);
+      uchar3 val_l = src(dst_y, dst_x+cols);
       switch(method_num)
       {
         case(1): // True
