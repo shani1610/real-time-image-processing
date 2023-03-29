@@ -5,7 +5,7 @@
 
 using namespace std;
 
-void startCUDA ( cv::cuda::GpuMat& src,cv::cuda::GpuMat& dst, cv::cuda::GpuMat& dst2 );
+void startCUDA ( cv::cuda::GpuMat& src,cv::cuda::GpuMat& dst, int kernel_size_div2, double sigma);
 
 int main( int argc, char** argv )
 {
@@ -13,34 +13,33 @@ int main( int argc, char** argv )
   cv::namedWindow("Processed Image", cv::WINDOW_OPENGL | cv::WINDOW_AUTOSIZE);
 
   cv::Mat h_img = cv::imread(argv[1]);
-  cv::Mat h_result;
-  cv::Mat h2_result;
+  cv::Mat h_result;  
+  
+  int kernel_size_div2 = stof(argv[2]);
+  double sigma = stof(argv[3]);
 
-  cv::cuda::GpuMat d_img, d_result, d2_result;
+  cv::cuda::GpuMat d_img, d_result;
 
   d_img.upload(h_img);
   d_result.upload(h_img);
-  d2_result.upload(h_img);
   int width= d_img.cols;
   int height = d_img.rows;
 
   cv::imshow("Original Image", h_img);
   
   auto begin = chrono::high_resolution_clock::now();
-  const int iter = 100000;
-  
+  //const int iter = 100000; // too long 
+  const int iter = 100;
+
   for (int i=0;i<iter;i++)
     {
-      startCUDA ( d_img, d_result, d2_result );
+      startCUDA ( d_img, d_result, kernel_size_div2, sigma);
     }
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = end-begin;
 
   d_result.download(h_result);
   cv::imshow("Processed Image", h_result);
-
-  d2_result.download(h2_result);
-    cv::imshow("Processed 2 Image", h2_result);
 
   cout << "Time: "<< diff.count() << endl;
   cout << "Time/frame: " << diff.count()/iter << endl;
