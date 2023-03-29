@@ -11,9 +11,13 @@ CUDA compile Anaglyph:
 ./imagecuda_a flower_resized.jpg 2
 
 OpenMP compile:
-g++ opencv-omp-basic.cpp -fopenmp `pkg-config opencv4 --cflags` -c
-g++ opencv-omp-basic.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-basic
-./opencv-omp-basic flower_resized.jpg
+g++ opencv-omp-anaglyph.cpp -fopenmp `pkg-config opencv4 --cflags` -c
+g++ opencv-omp-anaglyph.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-anaglyph
+./opencv-omp-anaglyph flower_resized.jpg
+
+g++ opencv-omp-ip.cpp -fopenmp `pkg-config opencv4 --cflags` -c
+g++ opencv-omp-ip.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-ip
+./opencv-omp-ip flower_resized.jpg
 
 git:
 git clone https://github.com/shani1610/real-time-image-processing.git
