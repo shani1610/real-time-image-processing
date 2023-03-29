@@ -13,7 +13,7 @@ int main( int argc, char** argv )
   cv::namedWindow("Processed Image", cv::WINDOW_OPENGL | cv::WINDOW_AUTOSIZE);
 
   cv::Mat h_img = cv::imread(argv[1]);
-  cv::Mat h_result;  
+  cv::Mat h_result(h_img.rows, h_img.cols/2, CV_8UC3);  
   
   int kernel_size_div2 = stof(argv[2]);
   double sigma = stof(argv[3]);
@@ -21,7 +21,7 @@ int main( int argc, char** argv )
   cv::cuda::GpuMat d_img, d_result;
 
   d_img.upload(h_img);
-  d_result.upload(h_img);
+  d_result.upload(h_result);
   int width= d_img.cols;
   int height = d_img.rows;
 
