@@ -9,7 +9,7 @@
 
 #include "helper_math.h"
 
-__global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<uchar3> dst, int rows, int cols )
+__global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<uchar3> dst, cv::cuda::PtrStep<uchar3> dst2, int rows, int cols )
 {
  
   const int dst_x = blockDim.x * blockIdx.x + threadIdx.x;
@@ -29,7 +29,19 @@ __global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<u
       dst(dst_y, dst_x).x = sum_b; //b
       dst(dst_y, dst_x).y = sum_g; //g
       dst(dst_y, dst_x).z = sum_r; //r
-    }
+
+      // gray 
+      sum_b = 0.0;
+      sum_g = 0.0;
+      sum_r = 0.0;
+      val_r = src(dst_y, dst_x);
+      val_l = src(dst_y, dst_x+cols/2);
+      sum_b = 0.299*val_l.z+0.587*val_l.y+0.114*val_l.x;
+      sum_g = 0.299*val_l.z+0.587*val_l.y+0.114*val_l.x;
+      sum_r = 0.299*val_r.z+0.587*val_r.y+0.114*val_r.x;
+      dst2(dst_y, dst_x).x = sum_b; //b
+      dst2(dst_y, dst_x).y = sum_g; //g
+      dst2(dst_y, dst_x).z = sum_r; //r
     }
 
   // // gaussian filter:
@@ -56,19 +68,21 @@ __global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<u
   //     dst(dst_y, dst_x).x = sum_x/factor; //b
   //     dst(dst_y, dst_x).y = sum_y/factor; //g
   //     dst(dst_y, dst_x).z = sum_z/factor; //r
-  //   }}
+  //   }
+}
 
 int divUp(int a, int b)
 {
   return ((a % b) != 0) ? (a / b + 1) : (a / b);
 }
 
-void startCUDA ( cv::cuda::GpuMat& src, cv::cuda::GpuMat& dst )
+void startCUDA ( cv::cuda::GpuMat& src, cv::cuda::GpuMat& dst, cv::cuda::GpuMat& dst2 )
 {
   const dim3 block(32, 8);
   const dim3 grid(divUp(dst.cols, block.x), divUp(dst.rows, block.y));
 
-  process<<<grid, block>>>(src, dst, dst.rows, dst.cols);
+  process<<<grid, block>>>(src, dst, dst2, dst.rows, dst.cols);
+
 
 }
 
