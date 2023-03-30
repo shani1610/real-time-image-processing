@@ -25,7 +25,7 @@ int main( int argc, char** argv )
   int width= d_img.cols;
   int height = d_img.rows;
 
-  cv::imshow("Original Image", h_img);
+  //cv::imshow("Original Image", h_img);
   
   auto begin = chrono::high_resolution_clock::now();
   //const int iter = 100000; // too long 

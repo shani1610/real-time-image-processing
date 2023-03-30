@@ -15,8 +15,9 @@ int main( int argc, char** argv )
   cv::Mat h_img = cv::imread(argv[1]);
   cv::Mat h_result(h_img.rows, h_img.cols/2, CV_8UC3);
 
-  int method_num = stof(argv[2]);
-  
+  int method_num = atoi(argv[2]);
+  cout << "method_num: "<< method_num << endl;
+
   cv::cuda::GpuMat d_img, d_result;
 
   d_img.upload(h_img);
@@ -24,7 +25,7 @@ int main( int argc, char** argv )
   int width= d_img.cols;
   int height = d_img.rows;
 
-  cv::imshow("Original Image", h_img);
+  //cv::imshow("Original Image", h_img);
   
   auto begin = chrono::high_resolution_clock::now();
   const int iter = 100000;
