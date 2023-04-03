@@ -5,7 +5,7 @@
 
 using namespace std;
 
-void startCUDA ( cv::cuda::GpuMat& src,cv::cuda::GpuMat& dst, int kernel_size_div2, double sigma);
+void startCUDA ( cv::cuda::GpuMat& src,cv::cuda::GpuMat& dst, int cov_kernel_size_div2, int factor_ratio);
 
 int main( int argc, char** argv )
 {
@@ -15,8 +15,8 @@ int main( int argc, char** argv )
   cv::Mat h_img = cv::imread(argv[1]);
   cv::Mat h_result(h_img.rows, h_img.cols/2, CV_8UC3);  
   
-  const int kernel_size_div2 = stof(argv[2]);
-  double sigma = stof(argv[3]);
+  const int cov_kernel_size_div2 = stof(argv[2]);
+  int factor_ratio = stof(argv[3]);
 
   cv::cuda::GpuMat d_img, d_result;
 
@@ -33,7 +33,7 @@ int main( int argc, char** argv )
 
   for (int i=0;i<iter;i++)
     {
-      startCUDA ( d_img, d_result, kernel_size_div2, sigma);
+      startCUDA ( d_img, d_result, cov_kernel_size_div2, factor_ratio);
     }
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = end-begin;
