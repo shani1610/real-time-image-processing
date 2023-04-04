@@ -89,6 +89,7 @@ if (dst_x < cols && dst_y < rows)
         minor2 = covariance_mat[1][0]*covariance_mat[2][2]-covariance_mat[1][2]*covariance_mat[2][0];
         minor3 = covariance_mat[1][0]*covariance_mat[2][1]-covariance_mat[1][1]*covariance_mat[2][0];
         det = covariance_mat[0][0]*minor1+covariance_mat[0][1]*minor2+covariance_mat[0][2]*minor3;
+        //det = cv::determinant(covariance_mat);
         double sigma = 1.0;
         int kernel_size_div2 = (det*3)/factor_ratio;
 

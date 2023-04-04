@@ -22,31 +22,31 @@ __global__ void process(const cv::cuda::PtrStep<uchar3> src, cv::cuda::PtrStep<u
       double sum_r = 0.0;
       uchar3 val_r = src(dst_y, dst_x+cols);
       uchar3 val_l = src(dst_y, dst_x);
-      if (method_num==1) // True
+      if (method_num==0) // True
       {
           sum_b = 0.299*val_r.z+0.587*val_r.y+0.114*val_r.x;
           sum_g = 0.0;
           sum_r = 0.299*val_l.z+0.587*val_l.y+0.114*val_l.x;
       }
-      else if (method_num==2) // Gray
+      else if (method_num==1) // Gray
       {
           sum_b = 0.299*val_r.z+0.587*val_r.y+0.114*val_r.x;
           sum_g = 0.299*val_r.z+0.587*val_r.y+0.114*val_r.x;
           sum_r = 0.299*val_l.z+0.587*val_l.y+0.114*val_l.x;
       }
-      else if (method_num==3) // Color
+      else if (method_num==2) // Color
       {
           sum_b = 0.0*val_r.z+0.0*val_r.y+1.0*val_r.x;
           sum_g = 0.0*val_r.z+1.0*val_r.y+0.0*val_r.x;
           sum_r = 1.0*val_l.z+0.0*val_l.y+0.0*val_l.x;
       }
-      else if (method_num==4) // Half-Color
+      else if (method_num==3) // Half-Color
       {
           sum_b = 0.0*val_r.z+0.0*val_r.y+1.0*val_r.x;
           sum_g = 0.0*val_r.z+1.0*val_r.y+0.0*val_r.x;
           sum_r = 0.299*val_l.z+0.587*val_l.y+0.114*val_l.x;
       }
-      else if (method_num==5) // Optimized
+      else if (method_num==4) // Optimized
       {
           sum_b = 0.0*val_r.z+0.0*val_r.y+1.0*val_r.x;
           sum_g = 0.0*val_r.z+1.0*val_r.y+0.0*val_r.x;

@@ -10,14 +10,24 @@ CUDA compile Anaglyph:
 
 ./imagecuda_a flower_resized.jpg 2
 
+CUDA compile denoising:
+/usr/local/cuda/bin/nvcc denoising.cu `pkg-config opencv4 --cflags --libs` imagecpp_denoising.cpp -o imagecuda_dn
+./imagecuda_dn flower_resized.jpg 3 1.0
+
+
 OpenMP compile:
 g++ opencv-omp-anaglyph.cpp -fopenmp `pkg-config opencv4 --cflags` -c
 g++ opencv-omp-anaglyph.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-anaglyph
-./opencv-omp-anaglyph flower_resized.jpg
+./opencv-omp-anaglyph flower_resized.jpg 2
 
 g++ opencv-omp-ip.cpp -fopenmp `pkg-config opencv4 --cflags` -c
 g++ opencv-omp-ip.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-ip
-./opencv-omp-ip flower_resized.jpg
+./opencv-omp-ip flower_resized.jpg 3 1.0
+
+g++ opencv-omp-denoising.cpp -fopenmp `pkg-config opencv4 --cflags` -c
+g++ opencv-omp-denoising.o  -fopenmp `pkg-config opencv4 --libs` -lstdc++ -o opencv-omp-denoising
+./opencv-omp-denoising flower_resized.jpg 3 1.0
+
 
 git:
 git clone https://github.com/shani1610/real-time-image-processing.git
